@@ -40,11 +40,20 @@ if __name__ == '__main__':
 
         response = stub.AddCustomer(customer0)
         print(f'First request response = {response.success}')
+        response2 = stub.AddCustomer(example_pb2.Customer(forename='Tina', surname='A.'))
+        print(f'Second request response = {response2.success}')
 
         if response.success:
-            # add purchase for Smith
-            purchase1 = example_pb2.Purchase(customer_id=response.customers[0].id, total_price=100.0, articles=[1, 2, 3])
-            purchase2 = example_pb2.Purchase(customer_id=response.customers[0].id, total_price=50.0,
+            # add purchases for Smith — Task 1: iterate the stream of PurchaseResults
+            purchase1 = example_pb2.Purchase(purchase_id=0, customer_id=response.customers[0].id, total_price=100.0,
+                                             articles=[1, 2, 3])
+            purchase2 = example_pb2.Purchase(purchase_id=0, customer_id=response.customers[0].id, total_price=50.0,
                                              articles=[5])
-            response = stub.SendPurchases(p for p in [purchase1, purchase2])
-            print(f'Second request response = {response.success}')
+            # purchase for a non-existent customer to demo the error path
+            purchase3 = example_pb2.Purchase(purchase_id=999, customer_id=999, total_price=20.0)
+
+            for result in stub.SendPurchases(p for p in [purchase1, purchase2, purchase3]):
+                if result.success:
+                    print(f'Purchase {result.purchase_id} for customer {response.customers[0].id} added successfully')
+                else:
+                    print(f'Purchase {result.purchase_id} failed: {result.error_message}')

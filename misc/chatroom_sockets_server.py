@@ -36,6 +36,7 @@ context = zmq.Context()
 rep_socket = context.socket(zmq.REP)  # create response socket
 pub_socket = context.socket(zmq.PUB)  # create a publish socket
 
+active_sessions = set()
 
 def bind():
     """
@@ -54,12 +55,36 @@ def wait_for_requests():
     while True:
         try:
             message = pickle.loads(rep_socket.recv())
-            print("Received message: %s" % message['content'])
-            rep_socket.send_string("ACK")
-            channel = message['channel']
-            content = message['content']
-            print(f'Sending message = {content} to channel {channel}')
-            pub_socket.send_string(f'{channel} {content}')
+            msg_type = message.get('type', 'message')
+
+            # Task 3: handle login
+            if msg_type == 'login':
+                username = message['username']
+                if username in active_sessions:
+                    print(f'Login rejected for "{username}": already active')
+                    rep_socket.send_string('ERR')
+                else:
+                    active_sessions.add(username)
+                    print(f'User "{username}" logged in. Active sessions: {active_sessions}')
+                    rep_socket.send_string('OK')
+
+            # Task 3: handle disconnect
+            elif msg_type == 'disconnect':
+                username = message['username']
+                active_sessions.discard(username)
+                print(f'User "{username}" disconnected. Active sessions: {active_sessions}')
+                rep_socket.send_string('OK')
+
+            # normal chat message
+            else:
+                print("Received message: %s" % message['content'])
+                # Task 2: send acknowledgement back to client (REQ/REP)
+                rep_socket.send_string("ACK")
+                channel = message['channel']
+                content = message['content']
+                print(f'Sending message = {content} to channel {channel}')
+                pub_socket.send_string(f'{channel} {content}')
+
         except ZMQError as err:
             print(f"Exception: {err}")
 

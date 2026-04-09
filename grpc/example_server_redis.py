@@ -30,8 +30,8 @@
 #
 
 import grpc
-import example_pb2
-import example_pb2_grpc
+import hello_pb2
+import hello_pb2_grpc
 from concurrent import futures
 import logging
 import redis
@@ -81,7 +81,7 @@ class CustomerService(example_pb2_grpc.CustomerServiceServicer):
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    example_pb2_grpc.add_CustomerServiceServicer_to_server(CustomerService(), server)
+    hello_pb2_grpc.add_CustomerServiceServicer_to_server(CustomerService(), server)
     server.add_insecure_port('[::]:50051')
     server.start()
     server.wait_for_termination()

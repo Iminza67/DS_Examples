@@ -37,14 +37,15 @@ class CustomHttpServer(BaseHTTPRequestHandler):
         Handling of GET requests
         :return:
         """
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(bytes("<html><head><title>Distributed Systems</title></head>", "utf-8"))
-        self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
-        self.wfile.write(bytes("<body>", "utf-8"))
-        self.wfile.write(bytes("<p>Example web server.</p>", "utf-8"))
-        self.wfile.write(bytes("</body></html>", "utf-8"))
+        if self.path == "/example":
+            with open("example.html", "r") as f: #part1 of the assignment
+                content = f.read()
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes(content, "utf-8"))
+        else: # part2 of the assignment
+            self.send_error(404, "Resource Not Found","Nothing matches the given URL")
 
 
 if __name__ == "__main__":

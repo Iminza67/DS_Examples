@@ -79,10 +79,8 @@ async def prepare_lunch():
     :return:
     """
     with Timer(text="Total elapsed time {:.1f}"):
-        await boil_water()
-        await prepare_salad()
-        await cook_spaghetti()
-        await cook_sauce()
+        await asyncio.gather(boil_water(),prepare_salad())
+        await asyncio.gather(cook_spaghetti(),cook_sauce())
         
         print("Ready for lunch!")
 

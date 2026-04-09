@@ -49,10 +49,20 @@ import logging
 logging.basicConfig(level=logging.INFO) 
 logging.getLogger('suds.client').setLevel(logging.DEBUG)
 logging.getLogger('suds.transport').setLevel(logging.DEBUG)
+if __name__ == "__main__":
+    if len(argv) < 2:
+        print("Not enough arguments! Usage: soap_client.py <n>")
+        exit(1)
 
+    try:
+        n = int(argv[1])
+    except ValueError:
+        print(f"Error: '{argv[1]}' is not a valid integer.")
+        exit(1)
 try:
     hello_client = Client('http://localhost:7789/?wsdl')
-    print(hello_client.service.say_hello(name_to_echo))
+    result = hello_client.service.fibonacci(n)
+    print(result)
 except (URLError, WebFault):
     print("""\
             Ooops! Something went wrong!

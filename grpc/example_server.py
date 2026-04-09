@@ -70,11 +70,34 @@ class CustomerService(example_pb2_grpc.CustomerServiceServicer):
         """
         for request in request_iterator:
             if request.customer_id not in self.customers:
-                pass
-            customer = self.customers[request.customer_id]
-            print(f'Added new purchase for customer {request.customer_id} with total value {request.total_price}')
-            customer.purchases.append(request)
-        return example_pb2.CustomerServiceResponse(success=True, error_message='')
+                print(f'Purchase {request.purchase_id} failed: customer {request.customer_id} not found')
+                yield example_pb2.PurchaseResult(
+                    purchase_id=request.purchase_id,
+                    success=False,
+                    error_message='Customer not found'
+                )
+            else:
+                customer = self.customers[request.customer_id]
+                print(f'Added new purchase for customer {request.customer_id} with total value {request.total_price}')
+                customer.purchases.append(request)
+                yield example_pb2.PurchaseResult(
+                    purchase_id=request.purchase_id,
+                    success=True,
+                    error_message=''
+                )
+    def GetHighSpenders(self, request, context):
+        """
+        Task 2: Streams back all customers whose total purchase amount exceeds request.min_amount.
+        :param request: AmountThreshold with min_amount field
+        :param context: grpc context object
+        :return: stream of Customer objects
+        """
+        for customer in self.customers.values():
+            total = sum(p.total_price for p in customer.purchases)
+            if total > request.min_amount:
+                print(f'Streaming customer {customer.id} ({customer.forename} {customer.surname}), total={total}')
+                yield customer
+
 
 
 def serve():
@@ -82,6 +105,7 @@ def serve():
     example_pb2_grpc.add_CustomerServiceServicer_to_server(CustomerService(), server)
     server.add_insecure_port('[::]:50051')
     server.start()
+    print("Listening on port 50051")
     server.wait_for_termination()
 
 

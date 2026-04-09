@@ -52,13 +52,24 @@ def connect():
 def subscribe(channel):
     """
     Subscribes to a given channel.
-    :param username:
+    :param channel:
     :return:
     """
     sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
 
 
-async def message_input():
+# Task 1: listen asynchronously on the SUB socket and print messages as they arrive
+async def message_listener():
+    """
+    Listens asynchronously on the SUB socket and prints incoming messages.
+    :return:
+    """
+    while True:
+        received_message = await sub_socket.recv_string()
+        print(f'\nReceived message: {received_message}')
+
+
+async def message_input(username):
     """
     Performs user input processing.
     :return:
@@ -66,28 +77,48 @@ async def message_input():
     while True:
         channel = await aioconsole.ainput("Which user do you want to send a message to? (empty = all users, q = quit) ")
         if channel == 'q':
+            # Task 3: notify server before disconnecting so it forgets the user
+            disconnect_msg = {'type': 'disconnect', 'username': username}
+            await req_socket.send(pickle.dumps(disconnect_msg))
+            ack = await req_socket.recv_string()
+            print(f'Server acknowledged disconnect: {ack}')
             break
+
         if channel == '':
             channel = 'GENERAL'
+
         content = await aioconsole.ainput("Which message do you want to send? ")
-        message = {'channel': channel, 'content': content}
+        message = {'type': 'message', 'channel': channel, 'content': content}
         await req_socket.send(pickle.dumps(message))
-        received_message = await sub_socket.recv_string()
-        print(f'\nReceived message {received_message}')
+
+        # Task 2: check acknowledgement from server (REQ/REP)
+        ack = await req_socket.recv_string()
+        print(f'Server acknowledged: {ack}')
 
 
-async def main():
-    await message_input()
+async def main(username):
+    # Task 3: send login request and check for existing session
+    login_msg = {'type': 'login', 'username': username}
+    await req_socket.send(pickle.dumps(login_msg))
+    response = await req_socket.recv_string()
+    if response == 'ERR':
+        print(f'Username "{username}" is already in use. Disconnecting.')
+        return
+    print(f'Logged in as "{username}" (server response: {response})')
+
+    # Task 1: run listener and input loop concurrently
+    listener_task = asyncio.create_task(message_listener())
+    await message_input(username)
+    listener_task.cancel()
+
 
 if __name__ == "__main__":
     connect()
     subscribe('GENERAL')
-    if len(sys.argv) > 1:
-        subscribe(sys.argv[1])  # user name
+    username = sys.argv[1] if len(sys.argv) > 1 else 'anonymous'
+    subscribe(username)
     print("Client started")
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main(username))
     req_socket.close()
-

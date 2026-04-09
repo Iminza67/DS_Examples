@@ -28,9 +28,9 @@
 import sys
 import time
 from codetiming import Timer
+import asyncio
 
-
-def sync_fib(n):
+async def sync_fib(n):
     """
     Synchronous Fibonacci numbers: get the n-th Fibonacci number with a delay
     equal to the previous Fibonacci number.
@@ -41,6 +41,7 @@ def sync_fib(n):
     :return: The n-th Fibonacci number
     """
     if n == 0 or n == 1:
+        await asyncio.sleep(1)
         return n
 
     a = 0
@@ -51,20 +52,21 @@ def sync_fib(n):
         a = b
         b = c
 
-    time.sleep(c)
+    await asyncio.sleep(1)
     print(c, end=",")
     return c
 
 
-def main(nfib):
+async def main(nfib):
     """
     This is the main function.
     Call it with any parameter you like.
     """
     with Timer(text="Total time = {:.1f}"):
-        for index in range(nfib):
-            sync_fib(index)
+        tasks = asyncio.create_task(async_fib(i) for i in range(nfib))
+        await asyncio.gather(*tasks)
+        print()
 
 
 if __name__ == "__main__":
-    main(int(sys.argv[1]))
+    asyncio.run(main(int(sys.argv[1])))

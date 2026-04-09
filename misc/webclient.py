@@ -27,19 +27,40 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import sys
 
 import aiohttp
 import asyncio
 
+from joblib.testing import timeout
+
 
 async def main():
-    async with aiohttp.ClientSession() as session:
-        async with session.get('http://python.org') as response:
-            print("Status:", response.status)
-            print("Content-type:", response.headers['content-type'])
+    if len(sys.argv) != 2:
+        print("Usage: python webclient.py <url>")
+        sys.exit(1)
 
-            html = await response.text()
-            print("Body:", html[:15], "...")
+    url = sys.argv[1]
+
+    timeout = aiohttp.ClientTimeout(total=10)
+
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as response:
+
+                if response.status >= 400:
+                    print(f"Error: Invalid HTTP status code {response.status}")
+                    return
+                print("Status:", response.status)
+                print("Headers:", response.headers['content-type'])
+                print("Body:", await response.text())
+                print("Content:", response.content)
+
+
+    except asyncio.TimeoutError: #error handling part 1
+        print("Error: Response timed out")
+    except aiohttp.ClientConnectorError as e: #error handling part2
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":

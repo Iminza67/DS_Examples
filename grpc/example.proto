@@ -66,6 +66,18 @@ message CustomerServiceResponse {
   repeated Customer customers = 3;
 }
 
+// Task 1: one result streamed back per Purchase
+message PurchaseResult {
+  int32 purchase_id = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Task 2: threshold passed by the client
+message AmountThreshold {
+  double min_amount = 1;
+}
+
 //
 // Main service for customer administration
 //
@@ -76,7 +88,12 @@ service CustomerService {
   rpc AddCustomer(Customer) returns (CustomerServiceResponse);
 
   //
-  // Adds a number of purchases for a customer
+  // Task 1: client streams Purchases, server streams back one PurchaseResult per Purchase
   //
-  rpc SendPurchases(stream Purchase) returns (CustomerServiceResponse);
+  rpc SendPurchases(stream Purchase) returns (stream PurchaseResult);
+
+  //
+  // Task 2: server streams back all customers whose total spend exceeds min_amount
+  //
+  rpc GetHighSpenders(AmountThreshold) returns (stream Customer);
 }
