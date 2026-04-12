@@ -34,7 +34,7 @@ import example_pb2
 import example_pb2_grpc
 
 if __name__ == '__main__':
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel('grpc-server:50051') as channel:
         stub = example_pb2_grpc.CustomerServiceStub(channel)
         customer0 = example_pb2.Customer(forename='John', surname='Smith')
 
